@@ -4,6 +4,8 @@ from itertools import count, product
 
 DATA =   [(0, 1), (0, 0), (1, 0), (2, 2)]
 LABELS = [ True,  False,   True,  False ]
+#DATA =   [(0, 0), (1, 1), (1, 2), (2, 0), (0, 1), (0, 2), (2, 1), (2, 2)]
+#LABELS = [True, True, True, True, False, False, False, False]
 
 def weighted_mean(data, weights):
     return sum(x*w for x, w in zip(data, weights)) / sum(weights)
@@ -85,7 +87,6 @@ class AdaboostClassifier(object):
         self.classifiers = classifiers
         Z = sum(alphas)
         self.alphas = [a / Z for a in alphas]
-        print self.alphas
 
     def classify(self, instance, verbose=True):
         return (self.confidence(instance, verbose) >= 0.5)
@@ -191,7 +192,8 @@ def main(step):
         print ''.join(map(lambda c: symbols[c], row))
 
     print
-    nb = NaiveBayesClassifier(DATA, [0.25, 0.25, 0.25, 0.25], LABELS)
+    weights = [1.0 / len(DATA) for i in range(len(DATA))]
+    nb = NaiveBayesClassifier(DATA, weights, LABELS)
     surface = {}
     symbols = {True: '+', False: '-'}
     for x, y in product(range(21), range(21)):
