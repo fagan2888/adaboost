@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from math import log, pi, exp
-from itertools import count
+from itertools import count, product
 
 DATA =   [(0, 1), (0, 0), (1, 0), (2, 2)]
 LABELS = [ True,  False,   True,  False ]
@@ -28,16 +28,16 @@ class NaiveBayesClassifier(object):
         return (self.confidence(instance) >= 0.5)
 
     def confidence(self, instance):
-        probability = dict()
+        prob = dict()
         for label in (True, False):
             # Convert True/False to +1/-1
             log_sum = 0
             for value, model in zip(instance, self.models):
                 log_sum += model.log_likelihood(value, label)
             log_sum += self.class_model.log_likelihood(label)
-            probability[label] = exp(log_sum)
+            prob[label] = exp(log_sum)
 
-        return probability[True] / (probability[True] + probability[False])
+        return prob[True] / (prob[True] + prob[False])
 
 class FeatureModel(object):
     """
@@ -85,8 +85,12 @@ class AdaboostClassifier(object):
         self.classifiers = classifiers
         Z = sum(alphas)
         self.alphas = [a / Z for a in alphas]
+        print self.alphas
 
     def classify(self, instance, verbose=True):
+        return (self.confidence(instance, verbose) >= 0.5)
+
+    def confidence(self, instance, verbose=True):
         lines = list()
         avg = 0
         first = True
@@ -96,14 +100,14 @@ class AdaboostClassifier(object):
                 first = False
             else:
                 indent = '       '
-            cls = 2*h.classify(instance) - 1
+            cls = h.classify(instance)
             avg += a*cls
-            lines.append(indent + ('%.5f * (%2d)' % (a, cls)))
-        print ' +\n'.join(lines)
-        print avg
-        return (avg >= 0)
+            lines.append(indent + ('%.5f * (%5s)' % (a, cls)))
+        if verbose:
+            print ' +\n'.join(lines)
+        return avg
 
-def adaboost(data, labels, verbose=True, step=True):
+def adaboost(data, labels, step=True):
     #Initialize weights
     weights = [1.0 / len(data) for i in range(len(data))]
     classifiers = list()
@@ -140,8 +144,8 @@ def adaboost(data, labels, verbose=True, step=True):
         classifiers.append(classifier)
         alphas.append(alpha)
 
-        if epsilon > 0.5:
-            print 'Breaking since epsilon_%d > 0.5' % iteration
+        if epsilon >= 0.5:
+            print 'Breaking since epsilon_%d >= 0.5' % iteration
             break
 
         print 'Updating Weights...'
@@ -150,7 +154,7 @@ def adaboost(data, labels, verbose=True, step=True):
         Z = sum(weights)
         weights = [w/Z for w in weights]
 
-    return AdaboostClassifier(classifiers, weights)
+    return AdaboostClassifier(classifiers, alphas)
 
 def print_dataset(data, weights, labels, predictions=None):
     assert len(data[0]) == 2
@@ -175,7 +179,27 @@ def print_dataset(data, weights, labels, predictions=None):
 
 def main(step):
     ab = adaboost(DATA, LABELS)
-    print ab.classify((2, 0))
+    print ab.classify((0, 0))
+    print ab.confidence((0, 0), False)
+    surface = {}
+    symbols = {True: '+', False: '-'}
+    for x, y in product(range(21), range(21)):
+        surface[x, y] = ab.classify((x/10.0, y/10.0), False)
+
+    for y in range(20, -1, -1):
+        row = [surface[x, y] for x in range(21)]
+        print ''.join(map(lambda c: symbols[c], row))
+
+    print
+    nb = NaiveBayesClassifier(DATA, [0.25, 0.25, 0.25, 0.25], LABELS)
+    surface = {}
+    symbols = {True: '+', False: '-'}
+    for x, y in product(range(21), range(21)):
+        surface[x, y] = nb.classify((x/10.0, y/10.0))
+
+    for y in range(20, -1, -1):
+        row = [surface[x, y] for x in range(21)]
+        print ''.join(map(lambda c: symbols[c], row))
 
 if __name__ == '__main__':
     from sys import argv
