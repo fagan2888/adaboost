@@ -120,7 +120,7 @@ def adaboost(data, labels, step=True):
         print
         print 'Weighted Examples:'
         print_dataset(data, weights, labels)
-        print
+        if step: raw_input()
 
         print 'Training Classifier...'
         classifier = NaiveBayesClassifier(data, weights, labels)
@@ -129,17 +129,19 @@ def adaboost(data, labels, step=True):
         print 'Predictions:'
         predictions = map(classifier.classify, data)
         print_dataset(data, weights, labels, predictions)
-        print
+        if step: raw_input()
 
         epsilon = sum(w for w, l, p in zip(weights, labels, predictions)
                         if l != p)
         print 'epsilon_%d: %.5f' % (iteration, epsilon)
+        if step: raw_input()
         if epsilon == 0:
             print 'Breaking since epsilon_%d = 0' % iteration
             break
 
         alpha = 0.5*log((1 - epsilon) / epsilon)
         print 'alpha_%d: %.5f' % (iteration, alpha)
+        if step: raw_input()
         print
 
         classifiers.append(classifier)
@@ -154,6 +156,11 @@ def adaboost(data, labels, step=True):
         weights = [w*exp(-alpha*f) for w, f in zip(weights, factors)]
         Z = sum(weights)
         weights = [w/Z for w in weights]
+        if step: raw_input()
+
+    if step: raw_input()
+    print 'Returning Classifier...'
+    print
 
     return AdaboostClassifier(classifiers, alphas)
 
@@ -179,29 +186,11 @@ def print_dataset(data, weights, labels, predictions=None):
         print '+-------+--------+-------+------------+'
 
 def main(step):
-    ab = adaboost(DATA, LABELS)
-    print ab.classify((0, 0))
-    print ab.confidence((0, 0), False)
-    surface = {}
-    symbols = {True: '+', False: '-'}
-    for x, y in product(range(21), range(21)):
-        surface[x, y] = ab.classify((x/10.0, y/10.0), False)
-
-    for y in range(20, -1, -1):
-        row = [surface[x, y] for x in range(21)]
-        print ''.join(map(lambda c: symbols[c], row))
-
-    print
-    weights = [1.0 / len(DATA) for i in range(len(DATA))]
-    nb = NaiveBayesClassifier(DATA, weights, LABELS)
-    surface = {}
-    symbols = {True: '+', False: '-'}
-    for x, y in product(range(21), range(21)):
-        surface[x, y] = nb.classify((x/10.0, y/10.0))
-
-    for y in range(20, -1, -1):
-        row = [surface[x, y] for x in range(21)]
-        print ''.join(map(lambda c: symbols[c], row))
+    ab = adaboost(DATA, LABELS, step=step)
+    new = (1, 1)
+    print 'Classifying %s...' % str(new)
+    print ab.classify(new)
+    print ab.confidence(new, False)
 
 if __name__ == '__main__':
     from sys import argv
